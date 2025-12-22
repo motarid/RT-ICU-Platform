@@ -1,7 +1,7 @@
 from __future__ import annotations
 import os
-import psycopg2
-import psycopg2.extras
+import psycopg
+import psycopg.extras
 from contextlib import contextmanager
 
 def _dsn() -> str:
@@ -12,7 +12,7 @@ def _dsn() -> str:
 
 @contextmanager
 def conn():
-    c = psycopg2.connect(_dsn(), cursor_factory=psycopg2.extras.RealDictCursor)
+    c = psycopg.connect(_dsn(), cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         yield c.cursor()
         c.commit()
