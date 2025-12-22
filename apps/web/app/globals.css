@@ -1,0 +1,15 @@
+:root{
+  --navy:#0F2A44; --blue:#1F6AE1; --bg:#F8FAFC; --card:#FFFFFF; --border:#E5E7EB;
+  --muted:#6B7280; --green:#0E9F6E; --amber:#F59E0B; --red:#DC2626;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Arial; background:var(--bg); color:#0b1220; }
+.container{ max-width:1100px; margin:0 auto; padding:20px; }
+.card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; }
+.btn{ display:inline-flex; gap:8px; padding:12px 14px; border-radius:14px; border:1px solid var(--border); background:#fff; font-weight:800; cursor:pointer; text-decoration:none; }
+.btnPrimary{ background:var(--blue); border-color:var(--blue); color:#fff; }
+.pill{ display:inline-flex; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:#fff; font-size:12px; color:var(--muted); }
+.hero{ background:var(--navy); color:#fff; border-radius:22px; padding:26px; }
+.small{ color:var(--muted); font-size:13px; }
+.grid{ display:grid; gap:14px; }
+@media (min-width:900px){ .grid2{ grid-template-columns:1fr 1fr; } .grid3{ grid-template-columns:repeat(3, 1fr);}}
