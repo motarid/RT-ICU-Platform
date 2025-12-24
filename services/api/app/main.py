@@ -3,6 +3,10 @@ from fastapi import FastAPI
 def root():
     return {"ok": True, "message": "RTICU API is running. Try /health"}
 from fastapi.middleware.cors import CORSMiddleware
+import logging
+import time
+from fastapi import Request
+
 
 from app.health import router as health_router
 app.include_router(health_router)
