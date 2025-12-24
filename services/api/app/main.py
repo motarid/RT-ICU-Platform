@@ -1,33 +1,22 @@
 from fastapi import FastAPI
-@app.get("/")
-def root():
-    return {"ok": True, "message": "RTICU API is running. Try /health"}
 from fastapi.middleware.cors import CORSMiddleware
 import logging
-import time
-from fastapi import Request
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-)
-logger = logging.getLogger("rticu-api")
 
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    start = time.time()
-    response = await call_next(request)
-    duration_ms = int((time.time() - start) * 1000)
-    logger.info("%s %s -> %s (%dms)", request.method, request.url.path, response.status_code, duration_ms)
-    return response
-
-
+from app.logging_config import setup_logging
 from app.health import router as health_router
-app.include_router(health_router)
-
 from app.review_notify import router as review_notify_router
 
-app = FastAPI(title="RTICU API", version="1.0.0")
+# ---- Logging ----
+setup_logging()
+logger = logging.getLogger("rticu-api")
 
+# ---- App ----
+app = FastAPI(
+    title="RT-ICU API",
+    version="1.0.0"
+)
+
+# ---- CORS ----
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -36,5 +25,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ---- Root Endpoint (يحل مشكلة 404) ----
+@app.get("/")
+def root():
+    logger.info("Root endpoint accessed")
+    return {
+        "service": "rticu-api",
+        "status": "running",
+        "docs": "/docs",
+        "health": "/health"
+    }
+
+# ---- Routers ----
 app.include_router(health_router)
 app.include_router(review_notify_router)
+
+logger.info("RT-ICU API started successfully")
