@@ -1,5 +1,10 @@
+from app.logging_config import setup_logging
+logger = setup_logging("rticu-api")
+
 from fastapi import FastAPI@app.get("/")
 def root():
+    logger.info("API starting...")
+
     return {
         "service": "rticu-api",
         "status": "running",
