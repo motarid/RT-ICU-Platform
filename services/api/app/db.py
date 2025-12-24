@@ -1,17 +1,25 @@
 import os
 import psycopg
-import logging
+from contextlib import contextmanager
 
-logger = logging.getLogger("rticu-api.db")
+def _dsn() -> str:
+    dsn = os.environ.get("DATABASE_URL")
+    if not dsn:
+        raise RuntimeError("DATABASE_URL is not set")
+    return dsn
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL is not set")
-
+@contextmanager
 def get_connection():
+    """
+    psycopg v3 connection context manager
+    Usage:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                ...
+    """
+    conn = psycopg.connect(_dsn())
     try:
-        return psycopg.connect(DATABASE_URL)
-    except Exception as e:
-        logger.error("Database connection failed", exc_info=e)
-        raise
+        yield conn
+        conn.commit()
+    finally:
+        conn.close()
