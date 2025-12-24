@@ -1,28 +1,3 @@
-services:
-  - type: web
-    name: rticu-api
-    runtime: python
-    rootDir: services/api
-    buildCommand: "python -m pip install -U pip setuptools wheel && pip install -r requirements.txt"
-    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
-    envVars:
-      - key: PYTHON_VERSION
-        value: "3.11.9"
-      - key: LOG_LEVEL
-        value: "INFO"
-      - key: DATABASE_URL
-        sync: false
-
-  - type: worker
-    name: rticu-worker
-    runtime: python
-    rootDir: services/worker
-    buildCommand: "python -m pip install -U pip setuptools wheel && pip install -r requirements.txt"
-    startCommand: "python -m worker.main"
-    envVars:
-      - key: PYTHON_VERSION
-        value: "3.11.9"
-      - key: LOG_LEVEL
-        value: "INFO"
-      - key: DATABASE_URL
-        sync: false
+rootDir: services/api
+buildCommand: "python -m pip install -U pip setuptools wheel && pip install -r requirements.txt"
+startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
