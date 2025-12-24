@@ -1,33 +1,27 @@
-import logging
 import os
-import sys
+import logging
+from logging.config import dictConfig
 
 def setup_logging() -> None:
-    """
-    Production-friendly logging for Render.
-    - No extra libraries.
-    - Logs to stdout so Render can capture them.
-    - Respects LOG_LEVEL env var (default INFO).
-    """
-    level_name = os.getenv("LOG_LEVEL", "INFO").upper()
-    level = getattr(logging, level_name, logging.INFO)
+    level = os.getenv("LOG_LEVEL", "INFO").upper()
 
-    root = logging.getLogger()
+    dictConfig({
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "default": {
+                "format": "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+            }
+        },
+        "handlers": {
+            "console": {"class": "logging.StreamHandler", "formatter": "default"}
+        },
+        "root": {"level": level, "handlers": ["console"]},
+        "loggers": {
+            "uvicorn": {"level": level, "handlers": ["console"], "propagate": False},
+            "uvicorn.error": {"level": level, "handlers": ["console"], "propagate": False},
+            "uvicorn.access": {"level": level, "handlers": ["console"], "propagate": False},
+        },
+    })
 
-    # Avoid duplicate handlers on reloads
-    if root.handlers:
-        root.handlers.clear()
-
-    handler = logging.StreamHandler(sys.stdout)
-    formatter = logging.Formatter(
-        fmt="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
-    )
-    handler.setFormatter(formatter)
-
-    root.setLevel(level)
-    root.addHandler(handler)
-
-    # Make uvicorn logs consistent
-    logging.getLogger("uvicorn").setLevel(level)
-    logging.getLogger("uvicorn.error").setLevel(level)
-    logging.getLogger("uvicorn.access").setLevel(level)
+    logging.getLogger("rticu-api").info("Logging configured (LOG_LEVEL=%s)", level)
