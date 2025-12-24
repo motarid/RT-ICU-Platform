@@ -1,4 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI@app.get("/")
+def root():
+    return {
+        "service": "rticu-api",
+        "status": "running",
+        "docs": "/docs",
+        "health": "/health"
+    }
+
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
