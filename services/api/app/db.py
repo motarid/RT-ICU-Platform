@@ -1,6 +1,11 @@
 import os
-import psycopg2
 from contextlib import contextmanager
+
+try:
+    import psycopg2
+except Exception:
+    psycopg2 = None
+
 
 def _dsn() -> str:
     dsn = os.getenv("DATABASE_URL")
@@ -8,15 +13,16 @@ def _dsn() -> str:
         raise RuntimeError("DATABASE_URL is not set")
     return dsn
 
+
 @contextmanager
 def conn():
-    connection = psycopg2.connect(_dsn())
+    if psycopg2 is None:
+        raise RuntimeError("psycopg2 is not installed")
+
+    c = psycopg2.connect(_dsn())
     try:
-        cursor = connection.cursor()
-        try:
-            yield cursor
-            connection.commit()
-        finally:
-            cursor.close()
+        cur = c.cursor()
+        yield cur
+        c.commit()
     finally:
-        connection.close()
+        c.close()
