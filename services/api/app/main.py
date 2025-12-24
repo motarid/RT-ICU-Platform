@@ -1,3 +1,6 @@
+from app.logging_config import setup_logging
+setup_logging()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.health import router as health_router
