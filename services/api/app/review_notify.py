@@ -3,7 +3,7 @@ import time, json
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Literal, Optional
-from app.db import get_connection
+from app.db import conn
 
 router = APIRouter(prefix="/review/notify", tags=["review-notify"])
 Period = Literal["daily","weekly"]
