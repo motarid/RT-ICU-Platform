@@ -1,4 +1,7 @@
 from fastapi import FastAPI
+@app.get("/")
+def root():
+    return {"ok": True, "message": "RTICU API is running. Try /health"}
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.health import router as health_router
