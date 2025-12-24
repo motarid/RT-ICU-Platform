@@ -3,11 +3,13 @@ services:
     name: rticu-api
     runtime: python
     rootDir: services/api
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: "python -m pip install -U pip setuptools wheel && pip install -r requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
+      - key: LOG_LEVEL
+        value: "INFO"
       - key: DATABASE_URL
         sync: false
 
@@ -15,10 +17,12 @@ services:
     name: rticu-worker
     runtime: python
     rootDir: services/worker
-    buildCommand: pip install -r requirements.txt
-    startCommand: python -m worker.main
+    buildCommand: "python -m pip install -U pip setuptools wheel && pip install -r requirements.txt"
+    startCommand: "python -m worker.main"
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
+      - key: LOG_LEVEL
+        value: "INFO"
       - key: DATABASE_URL
         sync: false
