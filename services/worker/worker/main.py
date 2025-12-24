@@ -1,21 +1,23 @@
 import time
 import logging
-from worker.logging_config import setup_logging
-from worker.db import conn
+import os
+import sys
 
-setup_logging()
-logger = logging.getLogger("rticu-worker")
+def setup_logging():
+    level_name = os.getenv("LOG_LEVEL", "INFO").upper()
+    level = getattr(logging, level_name, logging.INFO)
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s | %(levelname)s | worker | %(message)s",
+        stream=sys.stdout,
+    )
+    logging.info("Worker logging initialized (level=%s)", level_name)
 
-def run_forever():
-    logger.info("Worker started")
+def main():
+    setup_logging()
     while True:
-        try:
-            with conn() as cur:
-                cur.execute("SELECT 1;")
-            logger.info("Worker heartbeat OK")
-        except Exception:
-            logger.exception("Worker error")
-        time.sleep(30)
+        logging.info("heartbeat: worker is running")
+        time.sleep(60)
 
 if __name__ == "__main__":
-    run_forever()
+    main()
