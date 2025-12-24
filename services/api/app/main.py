@@ -17,6 +17,7 @@ import logging
 
 from app.logging_config import setup_logging
 from app.health import router as health_router
+app.include_router(health_router)
 from app.review_notify import router as review_notify_router
 
 # ---- Logging ----
