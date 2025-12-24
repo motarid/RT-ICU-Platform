@@ -1,25 +1,22 @@
 import os
-import psycopg
+import psycopg2
 from contextlib import contextmanager
 
 def _dsn() -> str:
-    dsn = os.environ.get("DATABASE_URL")
+    dsn = os.getenv("DATABASE_URL")
     if not dsn:
         raise RuntimeError("DATABASE_URL is not set")
     return dsn
 
 @contextmanager
-def get_connection():
-    """
-    psycopg v3 connection context manager
-    Usage:
-        with get_connection() as conn:
-            with conn.cursor() as cur:
-                ...
-    """
-    conn = psycopg.connect(_dsn())
+def conn():
+    connection = psycopg2.connect(_dsn())
     try:
-        yield conn
-        conn.commit()
+        cursor = connection.cursor()
+        try:
+            yield cursor
+            connection.commit()
+        finally:
+            cursor.close()
     finally:
-        conn.close()
+        connection.close()
