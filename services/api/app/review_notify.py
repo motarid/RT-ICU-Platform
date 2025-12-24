@@ -3,7 +3,7 @@ import time, json
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Literal, Optional
-from .db import conn
+from app.db import get_connection
 
 router = APIRouter(prefix="/review/notify", tags=["review-notify"])
 Period = Literal["daily","weekly"]
@@ -44,7 +44,10 @@ def ensure_tables():
 def enqueue(req: EnqueueReq):
     ensure_tables()
     dept = req.dept or "ICU"
-    with conn() as c:
+with get_connection() as conn:
+    with conn.cursor() as cur:
+        # ضع الاستعلامات هنا
+        pass
         c.execute(
             """INSERT INTO outbox_events(event_type, dept, payload)
                VALUES(%s,%s,%s::jsonb) RETURNING id""",
@@ -56,7 +59,10 @@ def enqueue(req: EnqueueReq):
 @router.get("/latest")
 def latest(period: str = "weekly", dept: str = "ICU"):
     ensure_tables()
-    with conn() as c:
+with get_connection() as conn:
+    with conn.cursor() as cur:
+        # ضع الاستعلامات هنا
+        pass
         c.execute(
             """SELECT dept, period, created_at, subject, body_txt, body_html, metrics
                FROM review_notifications
