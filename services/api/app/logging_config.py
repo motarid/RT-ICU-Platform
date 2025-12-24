@@ -9,7 +9,7 @@ def setup_logging(service_name: str = "rticu-api") -> logging.Logger:
     root = logging.getLogger()
     root.setLevel(level)
 
-    # منع تكرار الـ handlers في حال reload
+    # Prevent duplicate handlers (e.g., reloads)
     if root.handlers:
         return logging.getLogger(service_name)
 
@@ -20,6 +20,7 @@ def setup_logging(service_name: str = "rticu-api") -> logging.Logger:
     handler.setFormatter(formatter)
     root.addHandler(handler)
 
+    # Uvicorn log levels
     logging.getLogger("uvicorn").setLevel(level)
     logging.getLogger("uvicorn.error").setLevel(level)
     logging.getLogger("uvicorn.access").setLevel(level)
