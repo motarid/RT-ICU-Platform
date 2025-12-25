@@ -2,14 +2,19 @@ import logging
 import os
 import sys
 
+
 def setup_logging(service_name: str = "rticu-api") -> logging.Logger:
+    """
+    Production-friendly console logging for Render.
+    No extra libraries. Prevents duplicate handlers.
+    """
     level_name = os.getenv("LOG_LEVEL", "INFO").upper()
     level = getattr(logging, level_name, logging.INFO)
 
     root = logging.getLogger()
     root.setLevel(level)
 
-    # Prevent duplicate handlers (e.g., reloads)
+    # Avoid duplicate logs if reloaded
     if root.handlers:
         return logging.getLogger(service_name)
 
@@ -20,7 +25,7 @@ def setup_logging(service_name: str = "rticu-api") -> logging.Logger:
     handler.setFormatter(formatter)
     root.addHandler(handler)
 
-    # Uvicorn log levels
+    # Make uvicorn logs consistent with our level
     logging.getLogger("uvicorn").setLevel(level)
     logging.getLogger("uvicorn.error").setLevel(level)
     logging.getLogger("uvicorn.access").setLevel(level)
