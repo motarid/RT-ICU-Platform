@@ -1,24 +1,28 @@
-services:
-  - type: web
-    name: rticu-api
-    runtime: python
-    rootDir: services/api
-    buildCommand: "python -m pip install -U pip setuptools wheel && pip install -r requirements.txt"
-    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
-    envVars:
-      - key: PYTHON_VERSION
-        value: "3.11.9"
-      - key: DATABASE_URL
-        sync: false
+import logging
+import os
+import sys
+import time
 
-  - type: worker
-    name: rticu-worker
-    runtime: python
-    rootDir: services/worker
-    buildCommand: "python -m pip install -U pip setuptools wheel && pip install -r requirements.txt"
-    startCommand: "python -m worker.main"
-    envVars:
-      - key: PYTHON_VERSION
-        value: "3.11.9"
-      - key: DATABASE_URL
-        sync: false
+
+def setup_logging():
+    level_name = os.getenv("LOG_LEVEL", "INFO").upper()
+    level = getattr(logging, level_name, logging.INFO)
+
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s | %(levelname)s | rticu-worker | %(message)s",
+        stream=sys.stdout,
+    )
+    logging.info("Worker logging initialized (level=%s)", level_name)
+
+
+def main():
+    setup_logging()
+    logging.info("Worker started.")
+    while True:
+        logging.info("heartbeat: worker is running")
+        time.sleep(60)
+
+
+if __name__ == "__main__":
+    main()
