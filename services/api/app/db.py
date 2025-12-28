@@ -26,3 +26,14 @@ def conn():
         c.commit()
     finally:
         c.close()
+def init_db():
+    with conn() as cur:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS patients (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                age INTEGER,
+                diagnosis TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
