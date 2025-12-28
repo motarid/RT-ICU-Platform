@@ -1,4 +1,8 @@
 import logging
+from pydantic import BaseModel
+from typing import Optional
+from app.db import ensure_patients_table
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
