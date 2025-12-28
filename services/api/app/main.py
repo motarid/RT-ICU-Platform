@@ -45,6 +45,12 @@ def root():
 app.include_router(health_router)
 app.include_router(review_notify_router)
 
+from app.db import init_db
+
+@app.post("/db/init")
+def init_database():
+    init_db()
+    return {"status": "ok", "message": "Database initialized"}
 
 # --- DB Ping (اختبار اتصال Neon) ---
 @app.get("/db/ping", operation_id="db_ping")
