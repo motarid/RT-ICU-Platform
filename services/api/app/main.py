@@ -47,7 +47,7 @@ app.include_router(review_notify_router)
 
 from app.db import init_db
 
-@app.post("/db/init")
+@app.get("/db/init")
 def init_database():
     init_db()
     return {"status": "ok", "message": "Database initialized"}
