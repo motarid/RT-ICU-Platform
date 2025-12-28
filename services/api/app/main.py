@@ -48,6 +48,59 @@ def root():
         "health": "/health",
         "db_ping": "/db/ping",
     }
+@app.post("/patients/init")
+def patients_init():
+    ensure_patients_table()
+    return {"ok": True, "message": "patients table ready"}
+@app.post("/patients")
+def create_patient(p: PatientCreate):
+    ensure_patients_table()
+    try:
+        from app.db import conn as db_conn
+        with db_conn() as cur:
+            cur.execute(
+                """
+                INSERT INTO patients (full_name, mrn, age, diagnosis)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id;
+                """,
+                (p.full_name, p.mrn, p.age, p.diagnosis),
+            )
+            new_id = cur.fetchone()[0]
+        return {"ok": True, "id": new_id}
+    except Exception:
+        return {"ok": False, "message": "failed to create patient"}
+@app.get("/patients")
+def list_patients():
+    ensure_patients_table()
+    try:
+        from app.db import conn as db_conn
+        with db_conn() as cur:
+            cur.execute(
+                """
+                SELECT id, full_name, mrn, age, diagnosis, created_at
+                FROM patients
+                ORDER BY id DESC
+                LIMIT 20;
+                """
+            )
+            rows = cur.fetchall()
+
+        items = []
+        for r in rows:
+            items.append(
+                {
+                    "id": r[0],
+                    "full_name": r[1],
+                    "mrn": r[2],
+                    "age": r[3],
+                    "diagnosis": r[4],
+                    "created_at": str(r[5]),
+                }
+            )
+        return {"ok": True, "items": items}
+    except Exception:
+        return {"ok": False, "items": []}
 
 
 # --- Routers ---
