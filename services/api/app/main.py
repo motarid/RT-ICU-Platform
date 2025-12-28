@@ -21,6 +21,11 @@ logger = logging.getLogger("rticu-api")
 
 # --- App ---
 app = FastAPI(title="RTICU API", version="1.0.0")
+class PatientCreate(BaseModel):
+    full_name: str
+    mrn: Optional[str] = None
+    age: Optional[int] = None
+    diagnosis: Optional[str] = None
 
 
 # --- CORS (مفتوح الآن للتجربة؛ لاحقًا ضيّقه على دومين الواجهة فقط) ---
