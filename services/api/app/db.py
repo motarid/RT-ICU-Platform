@@ -37,3 +37,15 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+def ensure_patients_table():
+    with conn() as cur:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS patients (
+                id SERIAL PRIMARY KEY,
+                full_name TEXT NOT NULL,
+                mrn TEXT,
+                age INTEGER,
+                diagnosis TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
