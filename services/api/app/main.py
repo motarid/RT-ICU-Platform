@@ -11,7 +11,10 @@ from app.health import router as health_router
 from app.review_notify import router as review_notify_router
 
 # DB (Neon/Postgres) optional ping endpoint
-from app.db import conn as db_conn
+@app.post("/patients")
+def create_patient(patients: list[PatientCreate]):
+    ...
+
 
 
 # --- Logging ---
@@ -21,11 +24,56 @@ logger = logging.getLogger("rticu-api")
 
 # --- App ---
 app = FastAPI(title="RTICU API", version="1.0.0")
+from pydantic import BaseModel, Field, validator
+from typing import Optional
+
+
 class PatientCreate(BaseModel):
-    full_name: str
-    mrn: Optional[str] = None
-    age: Optional[int] = None
-    diagnosis: Optional[str] = None
+    # الاسم إجباري وطوله لا يقل عن 3 أحرف
+    name: str = Field(
+        ...,
+        min_length=3,
+        max_length=100,
+        description="Patient full name"
+    )
+
+    # MRN اختياري لكن إن وُجد يجب ألا يكون فاضي
+    mrn: Optional[str] = Field(
+        None,
+        min_length=1,
+        max_length=50,
+        description="Medical Record Number"
+    )
+
+    # العمر: رقم بين 0 و 120
+    age: int = Field(
+        ...,
+        ge=0,
+        le=120,
+        description="Patient age"
+    )
+
+    # التشخيص إجباري
+    diagnosis: str = Field(
+        ...,
+        min_length=3,
+        max_length=200,
+        description="Clinical diagnosis"
+    )
+
+    # Validation إضافية (منطقية)
+    @validator("name")
+    def name_must_be_letters(cls, v):
+        if not v.replace(" ", "").isalpha():
+            raise ValueError("Name must contain letters only")
+        return v.strip()
+
+    @validator("diagnosis")
+    def diagnosis_not_generic(cls, v):
+        if v.lower() in ["test", "none", "na"]:
+            raise ValueError("Diagnosis is not valid")
+        return v
+
 
 
 # --- CORS (مفتوح الآن للتجربة؛ لاحقًا ضيّقه على دومين الواجهة فقط) ---
