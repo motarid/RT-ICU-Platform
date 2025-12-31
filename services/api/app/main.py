@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from .database import engine, get_db, Base
 from . import models, schemas, crud
+from fastapi.middleware.cors import CORSMiddleware
 
 # ---------- Logging Setup ----------
 logging.basicConfig(
@@ -16,6 +17,14 @@ logger = logging.getLogger("rticu-api")
 
 # ---------- App Setup ----------
 app = FastAPI(title="RT-ICU Platform API")
+# CORS (allow your web app to call the API)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # لاحقاً سنقيده لدومين موقعك فقط
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Create Database Tables
 # This will create 'patients_v2' automatically when the app starts
