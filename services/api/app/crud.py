@@ -1,49 +1,38 @@
 from sqlalchemy.orm import Session
 from . import models, schemas
 
-def create_patient(db: Session, payload: schemas.PatientCreate) -> models.Patient:
-    patient = models.Patient(
-        name=payload.name,
-        age=payload.age,
-        diagnosis=payload.diagnosis,
-    )
-    db.add(patient)
-    db.commit()
-    db.refresh(patient)
-    return patient
-
-def list_patients(db: Session, skip: int = 0, limit: int = 100):
-    return (
-        db.query(models.Patient)
-        .order_by(models.Patient.id.desc())
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
-
 def get_patient(db: Session, patient_id: int):
     return db.query(models.Patient).filter(models.Patient.id == patient_id).first()
 
-def update_patient(db: Session, patient_id: int, payload: schemas.PatientUpdate):
-    patient = get_patient(db, patient_id)
-    if not patient:
+def list_patients(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Patient).offset(skip).limit(limit).all()
+
+def create_patient(db: Session, patient: schemas.PatientCreate):
+    # We use model_dump() for Pydantic v2 compatibility
+    db_patient = models.Patient(**patient.model_dump())
+    db.add(db_patient)
+    db.commit()
+    db.refresh(db_patient)
+    return db_patient
+
+def delete_patient(db: Session, patient_id: int):
+    patient = db.query(models.Patient).filter(models.Patient.id == patient_id).first()
+    if patient:
+        db.delete(patient)
+        db.commit()
+        return True
+    return False
+
+def update_patient(db: Session, patient_id: int, patient_update: schemas.PatientUpdate):
+    db_patient = db.query(models.Patient).filter(models.Patient.id == patient_id).first()
+    if not db_patient:
         return None
-
-    if payload.name is not None:
-        patient.name = payload.name
-    if payload.age is not None:
-        patient.age = payload.age
-    if payload.diagnosis is not None:
-        patient.diagnosis = payload.diagnosis
-
+    
+    # Update only fields that are provided (not None)
+    update_data = patient_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_patient, key, value)
+    
     db.commit()
-    db.refresh(patient)
-    return patient
-
-def delete_patient(db: Session, patient_id: int) -> bool:
-    patient = get_patient(db, patient_id)
-    if not patient:
-        return False
-    db.delete(patient)
-    db.commit()
-    return True
+    db.refresh(db_patient)
+    return db_patient
