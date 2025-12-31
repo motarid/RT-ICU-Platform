@@ -1,22 +1,24 @@
 import os
 import logging
+from typing import List
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
 
-from .database import Base, engine, get_db
+from .database import engine, get_db, Base
 from . import models, schemas, crud
 
-# ---------- Logging ----------
-logger = logging.getLogger("rticu-api")
+# ---------- Logging Setup ----------
 logging.basicConfig(
-    level=os.getenv("LOG_LEVEL", "INFO"),
+    level=logging.INFO,
     format="%(asctime)s | %(levelname)s | rticu-api | %(message)s"
 )
+logger = logging.getLogger("rticu-api")
 
+# ---------- App Setup ----------
 app = FastAPI(title="RT-ICU Platform API")
 
-# Create tables (OK for now; later you can move to migrations)
+# Create Database Tables
+# This will create 'patients_v2' automatically when the app starts
 Base.metadata.create_all(bind=engine)
 
 @app.get("/")
@@ -27,17 +29,16 @@ def root():
 def health():
     return {"ok": True}
 
-# -------------------------
-# Patients CRUD
-# -------------------------
+# ---------- Patient Routes ----------
 
 @app.post("/patients", response_model=schemas.PatientOut)
 def create_patient(payload: schemas.PatientCreate, db: Session = Depends(get_db)):
     try:
         patient = crud.create_patient(db, payload)
+        logger.info(f"Created patient id={patient.id}")
         return patient
     except Exception as e:
-        logger.exception("Create patient failed")
+        logger.error(f"Error creating patient: {e}")
         raise HTTPException(status_code=500, detail="Failed to create patient")
 
 @app.get("/patients", response_model=List[schemas.PatientOut])
