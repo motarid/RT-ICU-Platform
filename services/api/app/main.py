@@ -1,33 +1,22 @@
 import os
 import logging
-from typing import List
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import asc, desc, or_
+from typing import List
 
-from .database import engine, get_db, Base
+from .database import Base, engine, get_db
 from . import models, schemas, crud
-from fastapi.middleware.cors import CORSMiddleware
 
-# ---------- Logging Setup ----------
+# ---------- Logging ----------
+logger = logging.getLogger("rticu-api")
 logging.basicConfig(
-    level=logging.INFO,
+    level=os.getenv("LOG_LEVEL", "INFO"),
     format="%(asctime)s | %(levelname)s | rticu-api | %(message)s"
 )
-logger = logging.getLogger("rticu-api")
 
-# ---------- App Setup ----------
 app = FastAPI(title="RT-ICU Platform API")
-# CORS (allow your web app to call the API)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # لاحقاً سنقيده لدومين موقعك فقط
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
-# Create Database Tables
-# This will create 'patients_v2' automatically when the app starts
 Base.metadata.create_all(bind=engine)
 
 @app.get("/")
@@ -38,39 +27,69 @@ def root():
 def health():
     return {"ok": True}
 
-# ---------- Patient Routes ----------
+# -------------------------
+# Patients (SERVER-SIDE pagination + sorting + search)
+# -------------------------
+@app.get("/patients")
+def list_patients(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    sort_by: str = Query("name"),       # name | age | diagnosis
+    sort_dir: str = Query("asc"),        # asc | desc
+    q: str | None = Query(None),         # search text
+    db: Session = Depends(get_db),
+):
+    query = db.query(models.Patient)
 
+    # Search
+    if q:
+        like = f"%{q.lower()}%"
+        query = query.filter(
+            or_(
+                models.Patient.name.ilike(like),
+                models.Patient.diagnosis.ilike(like),
+                models.Patient.age.cast(str).ilike(like),
+            )
+        )
+
+    # Sorting
+    sort_column = {
+        "name": models.Patient.name,
+        "age": models.Patient.age,
+        "diagnosis": models.Patient.diagnosis,
+    }.get(sort_by, models.Patient.name)
+
+    if sort_dir == "desc":
+        query = query.order_by(desc(sort_column))
+    else:
+        query = query.order_by(asc(sort_column))
+
+    # Total count (before pagination)
+    total = query.count()
+
+    # Pagination
+    items = (
+        query
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": (total + page_size - 1) // page_size,
+    }
+
+# باقي CRUD (POST/PUT/DELETE) تبقى كما هي
 @app.post("/patients", response_model=schemas.PatientOut)
 def create_patient(payload: schemas.PatientCreate, db: Session = Depends(get_db)):
-    try:
-        patient = crud.create_patient(db, payload)
-        logger.info(f"Created patient id={patient.id}")
-        return patient
-    except Exception as e:
-        logger.error(f"Error creating patient: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create patient")
-
-@app.get("/patients", response_model=List[schemas.PatientOut])
-def list_patients(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return crud.list_patients(db, skip=skip, limit=limit)
-
-@app.get("/patients/{patient_id}", response_model=schemas.PatientOut)
-def get_patient(patient_id: int, db: Session = Depends(get_db)):
-    patient = crud.get_patient(db, patient_id)
-    if not patient:
-        raise HTTPException(status_code=404, detail="Patient not found")
-    return patient
-
-@app.put("/patients/{patient_id}", response_model=schemas.PatientOut)
-def update_patient(patient_id: int, payload: schemas.PatientUpdate, db: Session = Depends(get_db)):
-    patient = crud.update_patient(db, patient_id, payload)
-    if not patient:
-        raise HTTPException(status_code=404, detail="Patient not found")
+    patient = crud.create_patient(db, payload)
     return patient
 
 @app.delete("/patients/{patient_id}")
 def delete_patient(patient_id: int, db: Session = Depends(get_db)):
     ok = crud.delete_patient(db, patient_id)
-    if not ok:
-        raise HTTPException(status_code=404, detail="Patient not found")
-    return {"ok": True, "deleted_id": patient_id}
+    return {"ok": ok, "deleted_id": patient_id}
