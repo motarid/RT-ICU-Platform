@@ -1,6 +1,7 @@
 import os
 import logging
 from fastapi import FastAPI, Depends, Query
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import asc, desc, or_
 from typing import Optional
@@ -16,6 +17,14 @@ logging.basicConfig(
 )
 
 app = FastAPI(title="RT-ICU Platform API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 Base.metadata.create_all(bind=engine)
 
