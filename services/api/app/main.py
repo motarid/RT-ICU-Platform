@@ -1,101 +1,34 @@
-import os
-import logging
-from fastapi import FastAPI, Depends, Query
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-from sqlalchemy import asc, desc, or_
-from typing import Optional
 
-# التصحيح: الاستيراد من نفس المجلد (النقطة مهمة)
-from .database import Base, engine, get_db
-from . import models, schemas, crud
+# إذا عندك راوترات في مشروعك (اختياري)
+# from app.api.router import api_router
 
-# إعداد السجلات (Logs)
-logger = logging.getLogger("rticu-api")
-logging.basicConfig(
-    level=os.getenv("LOG_LEVEL", "INFO"),
-    format="%(asctime)s | %(levelname)s | rticu-api | %(message)s"
-)
+app = FastAPI(title="RTICU API")
 
-app = FastAPI(title="RT-ICU Platform API")
+# ✅ CORS (مهم جداً)
+allowed_origins = [
+    "http://localhost:5173",     # Vite local
+    "http://127.0.0.1:5173",
+    # ضع رابط Vercel/Production هنا لاحقاً مثل:
+    # "https://your-frontend.vercel.app",
+]
 
-# إعدادات CORS للسماح للفرونت إند بالاتصال
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# إنشاء الجداول في قاعدة البيانات
-Base.metadata.create_all(bind=engine)
-
-@app.get("/")
-def root():
-    return {"status": "ok", "message": "RT-ICU API running"}
-
 @app.get("/health")
 def health():
-    return {"ok": True}
+    return {"status": "ok"}
 
-# --- قائمة المرضى ---
-@app.get("/patients")
-def list_patients(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=100),
-    sort_by: str = Query("name"),
-    sort_dir: str = Query("asc"),
-    q: Optional[str] = Query(None),
-    age_min: Optional[int] = Query(None, ge=0, le=130),
-    age_max: Optional[int] = Query(None, ge=0, le=130),
-    diagnosis: Optional[str] = Query(None),
-    db: Session = Depends(get_db),
-):
-    query_obj = db.query(models.Patient)
+# إذا عندك راوترات فعّلها:
+# app.include_router(api_router)
 
-    if q:
-        like = f"%{q.lower()}%"
-        query_obj = query_obj.filter(
-            or_(models.Patient.name.ilike(like), models.Patient.diagnosis.ilike(like))
-        )
-
-    if age_min is not None:
-        query_obj = query_obj.filter(models.Patient.age >= age_min)
-    if age_max is not None:
-        query_obj = query_obj.filter(models.Patient.age <= age_max)
-
-    if diagnosis:
-        diag_list = [d.strip() for d in diagnosis.split(",") if d.strip()]
-        if diag_list:
-            like_filters = [models.Patient.diagnosis.ilike(f"%{d}%") for d in diag_list]
-            query_obj = query_obj.filter(or_(*like_filters))
-
-    sort_column = {
-        "name": models.Patient.name,
-        "age": models.Patient.age,
-        "diagnosis": models.Patient.diagnosis,
-    }.get(sort_by, models.Patient.name)
-
-    query_obj = query_obj.order_by(desc(sort_column) if sort_dir == "desc" else asc(sort_column))
-
-    total = query_obj.count()
-    items = query_obj.offset((page - 1) * page_size).limit(page_size).all()
-
-    return {
-        "items": items,
-        "total": total,
-        "page": page,
-        "page_size": page_size,
-        "pages": (total + page_size - 1) // page_size,
-    }
-
-# --- العمليات (إضافة وحذف) ---
-@app.post("/patients", response_model=schemas.PatientOut)
-def create_patient(payload: schemas.PatientCreate, db: Session = Depends(get_db)):
-    return crud.create_patient(db, payload)
-
-@app.delete("/patients/{patient_id}")
-def delete_patient(patient_id: int, db: Session = Depends(get_db)):
-    ok = crud.delete_patient(db, patient_id)
-    return {"ok": ok, "deleted_id": patient_id}
+# ملاحظة: إذا لديك code يستورد:
+# from app.db.session import engine
+# الآن سيعمل لأننا أنشأنا session.py + __init__.py
