@@ -1,14 +1,14 @@
-import logging
-import os
+from pydantic_settings import BaseSettings
 
-def setup_logging(service_name: str = "rticu-api"):
-    level = os.getenv("LOG_LEVEL", "INFO").upper()
+class Settings(BaseSettings):
+    APP_NAME: str = "RT-ICU API"
+    LOG_LEVEL: str = "INFO"
 
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-    )
+    # Database
+    DATABASE_URL: str = "sqlite:///./rticu.db"  # للتطوير المحلي
+    # في Render/Neon ستضع DATABASE_URL في Environment Variables
 
-    logger = logging.getLogger(service_name)
-    logger.info("Logging initialized (level=%s)", level)
-    return logger
+    # CORS
+    CORS_ALLOW_ORIGINS: str = "*"  # ابدأ بـ * ثم قيّدها لاحقًا
+
+settings = Settings()
