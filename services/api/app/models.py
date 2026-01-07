@@ -1,13 +1,11 @@
-from sqlalchemy import Column, Integer, String, DateTime
-from datetime import datetime
-from .database import Base
+from sqlalchemy import Integer, String
+from sqlalchemy.orm import Mapped, mapped_column
+from app.db.base import Base
 
 class Patient(Base):
-    # CHANGED: Renamed to 'patients_v2' to fix the "Column not found" error
-    __tablename__ = "patients_v2"
+    __tablename__ = "patients"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)  # This now matches your schema
-    age = Column(Integer)
-    diagnosis = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    age: Mapped[int] = mapped_column(Integer, nullable=False)
+    diagnosis: Mapped[str] = mapped_column(String(200), nullable=False)
