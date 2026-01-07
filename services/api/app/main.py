@@ -1,43 +1,36 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI()
+from app.core.logging import setup_logging
+from app.core.cors import get_allowed_origins
+from app.core.config import settings
 
-# ✅ CORS CONFIG (هذا هو الحل الجذري)
+from app.db.session import engine
+from app.db.base import Base
+
+from app.api.routers.health import router as health_router
+from app.api.routers.patients import router as patients_router
+
+logger = setup_logging("rticu-api")
+
+app = FastAPI(title=settings.APP_NAME)
+
+# ✅ CORS (حل مشكلة المتصفح)
+origins = get_allowed_origins()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # لاحقاً يمكن تقييده
+    allow_origins=origins if origins != ["*"] else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ===== Dummy in-memory DB (مثال) =====
-patients_db = [
-    {
-        "id": 33,
-        "name": "Ahmed Ali",
-        "age": 45,
-        "diagnosis": "ARDS"
-    },
-    {
-        "id": 34,
-        "name": "Ahmed Ali",
-        "age": 45,
-        "diagnosis": "ARDS"
-    }
-]
+# ✅ Create tables (مؤقتًا، لاحقًا Alembic migrations)
+Base.metadata.create_all(bind=engine)
+
+app.include_router(health_router)
+app.include_router(patients_router)
 
 @app.get("/")
 def root():
-    return {"status": "RT-ICU API running"}
-
-@app.get("/patients")
-def get_patients():
-    return {
-        "items": patients_db,
-        "total": len(patients_db),
-        "page": 1,
-        "page_size": 10,
-        "pages": 1
-    }
+    return {"status": "ok", "message": "RT-ICU API running"}
