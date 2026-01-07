@@ -1,36 +1,101 @@
-from fastapi import FastAPI
+import os
+import logging
+from fastapi import FastAPI, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+from sqlalchemy import asc, desc, or_
+from typing import Optional
 
-from app.core.logging import setup_logging
-from app.core.cors import get_allowed_origins
-from app.core.config import settings
+# التصحيح: الاستيراد من نفس المجلد (النقطة مهمة)
+from .database import Base, engine, get_db
+from . import models, schemas, crud
 
-from app.db.session import engine
-from app.db.base import Base
+# إعداد السجلات (Logs)
+logger = logging.getLogger("rticu-api")
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    format="%(asctime)s | %(levelname)s | rticu-api | %(message)s"
+)
 
-from app.api.routers.health import router as health_router
-from app.api.routers.patients import router as patients_router
+app = FastAPI(title="RT-ICU Platform API")
 
-logger = setup_logging("rticu-api")
-
-app = FastAPI(title=settings.APP_NAME)
-
-# ✅ CORS (حل مشكلة المتصفح)
-origins = get_allowed_origins()
+# إعدادات CORS للسماح للفرونت إند بالاتصال
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins if origins != ["*"] else ["*"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ✅ Create tables (مؤقتًا، لاحقًا Alembic migrations)
+# إنشاء الجداول في قاعدة البيانات
 Base.metadata.create_all(bind=engine)
-
-app.include_router(health_router)
-app.include_router(patients_router)
 
 @app.get("/")
 def root():
     return {"status": "ok", "message": "RT-ICU API running"}
+
+@app.get("/health")
+def health():
+    return {"ok": True}
+
+# --- قائمة المرضى ---
+@app.get("/patients")
+def list_patients(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    sort_by: str = Query("name"),
+    sort_dir: str = Query("asc"),
+    q: Optional[str] = Query(None),
+    age_min: Optional[int] = Query(None, ge=0, le=130),
+    age_max: Optional[int] = Query(None, ge=0, le=130),
+    diagnosis: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    query_obj = db.query(models.Patient)
+
+    if q:
+        like = f"%{q.lower()}%"
+        query_obj = query_obj.filter(
+            or_(models.Patient.name.ilike(like), models.Patient.diagnosis.ilike(like))
+        )
+
+    if age_min is not None:
+        query_obj = query_obj.filter(models.Patient.age >= age_min)
+    if age_max is not None:
+        query_obj = query_obj.filter(models.Patient.age <= age_max)
+
+    if diagnosis:
+        diag_list = [d.strip() for d in diagnosis.split(",") if d.strip()]
+        if diag_list:
+            like_filters = [models.Patient.diagnosis.ilike(f"%{d}%") for d in diag_list]
+            query_obj = query_obj.filter(or_(*like_filters))
+
+    sort_column = {
+        "name": models.Patient.name,
+        "age": models.Patient.age,
+        "diagnosis": models.Patient.diagnosis,
+    }.get(sort_by, models.Patient.name)
+
+    query_obj = query_obj.order_by(desc(sort_column) if sort_dir == "desc" else asc(sort_column))
+
+    total = query_obj.count()
+    items = query_obj.offset((page - 1) * page_size).limit(page_size).all()
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": (total + page_size - 1) // page_size,
+    }
+
+# --- العمليات (إضافة وحذف) ---
+@app.post("/patients", response_model=schemas.PatientOut)
+def create_patient(payload: schemas.PatientCreate, db: Session = Depends(get_db)):
+    return crud.create_patient(db, payload)
+
+@app.delete("/patients/{patient_id}")
+def delete_patient(patient_id: int, db: Session = Depends(get_db)):
+    ok = crud.delete_patient(db, patient_id)
+    return {"ok": ok, "deleted_id": patient_id}
