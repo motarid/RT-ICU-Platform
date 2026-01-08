@@ -1,34 +1,26 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# إذا عندك راوترات في مشروعك (اختياري)
-# from app.api.router import api_router
-
 app = FastAPI(title="RTICU API")
 
-# ✅ CORS (مهم جداً)
-allowed_origins = [
-    "http://localhost:5173",     # Vite local
-    "http://127.0.0.1:5173",
-    # ضع رابط Vercel/Production هنا لاحقاً مثل:
-    # "https://your-frontend.vercel.app",
-]
-
+# CORS (مهم جدًا للفرونت)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=["*"],  # لاحقًا نضيّقها
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
+@app.get("/")
+def root():
+    return {"status": "RTICU API is running"}
 
-# إذا عندك راوترات فعّلها:
-# app.include_router(api_router)
-
-# ملاحظة: إذا لديك code يستورد:
-# from app.db.session import engine
-# الآن سيعمل لأننا أنشأنا session.py + __init__.py
+@app.get("/patients")
+def get_patients():
+    return {
+        "items": [
+            {"id": 1, "name": "Ahmed Ali", "age": 45, "diagnosis": "ARDS"}
+        ],
+        "total": 1
+    }
