@@ -16,15 +16,13 @@ logger = setup_logging("rticu-api")
 
 app = FastAPI(title=settings.APP_NAME)
 
-# ✅ CORS
-origins = get_allowed_origins()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins if origins != ["*"] else ["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# ✅ CORS (مهم جداً)
+allowed_origins = [
+    "http://localhost:5173",     # Vite local
+    "http://127.0.0.1:5173",
+    # ضع رابط Vercel/Production هنا لاحقاً مثل:
+    # "https://your-frontend.vercel.app",
+]
 
 # ✅ Create DB tables (مؤقتًا — لاحقًا Alembic)
 Base.metadata.create_all(bind=engine)
