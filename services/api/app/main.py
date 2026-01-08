@@ -1,20 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.config import settings
-from app.core.logging import setup_logging
-from app.core.cors import get_allowed_origins
+# إذا عندك راوترات في مشروعك (اختياري)
+# from app.api.router import api_router
 
-from app.db.session import engine
-from app.db.base import Base
-
-from app.models.patient import Patient  # noqa: F401
-from app.routers.health import router as health_router
-from app.routers.patients import router as patients_router
-
-logger = setup_logging("rticu-api")
-
-app = FastAPI(title=settings.APP_NAME)
+app = FastAPI(title="RTICU API")
 
 # ✅ CORS (مهم جداً)
 allowed_origins = [
@@ -24,13 +14,21 @@ allowed_origins = [
     # "https://your-frontend.vercel.app",
 ]
 
-# ✅ Create DB tables (مؤقتًا — لاحقًا Alembic)
-Base.metadata.create_all(bind=engine)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# ✅ Routers
-app.include_router(health_router)
-app.include_router(patients_router)
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
-@app.get("/")
-def root():
-    return {"status": "ok", "message": "RT-ICU API running"}
+# إذا عندك راوترات فعّلها:
+# app.include_router(api_router)
+
+# ملاحظة: إذا لديك code يستورد:
+# from app.db.session import engine
+# الآن سيعمل لأننا أنشأنا session.py + __init__.py
